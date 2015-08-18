@@ -19,6 +19,7 @@ import android.graphics.Color;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -31,11 +32,8 @@ import android.content.ServiceConnection;
 import android.view.MenuItem;
 import android.view.View;
 
-import android.widget.MediaController.MediaPlayerControl;
-
-public class MainActivity extends Activity implements MediaPlayerControl 
+public class MainActivity extends Activity
 {
-
 	private ArrayList<Song> songList;
 	private ListView songView;
 	
@@ -49,16 +47,36 @@ public class MainActivity extends Activity implements MediaPlayerControl
 	
 	private boolean paused=false, playbackPaused=false;
 	
-	 public final static String EXTRA_MESSAGE = "com.mycompany.myfirstapp.MESSAGE";
-	
+	public final static String EXTRA_MESSAGE = "com.mycompany.myfirstapp.MESSAGE";
+
+	//connect to the service
+	private ServiceConnection musicConnection = new ServiceConnection()
+	{
+		@Override
+		public void onServiceConnected(ComponentName name, IBinder service)
+		{
+			MusicBinder binder = (MusicBinder)service;
+			musicSrv = binder.getService();
+			musicSrv.setList(songList);
+			musicBound = true;
+			setController();
+		}
+
+		@Override
+		public void onServiceDisconnected(ComponentName name)
+		{
+			musicBound = false;
+		}
+	};
+
     @Override
     protected void onCreate(Bundle savedInstanceState) 
     {
-        super.onCreate(savedInstanceState);
+		super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         songView = (ListView)findViewById(R.id.song_list);
         songList = new ArrayList<Song>();
-        getSongList();
+		getSongList();
         
         Collections.sort(songList, new Comparator<Song>()
         {
@@ -70,32 +88,8 @@ public class MainActivity extends Activity implements MediaPlayerControl
         
         songAdt = new SongAdapter(this, songList);
         songView.setAdapter(songAdt);
-        
-        //setController();
-        
     }
-    
-    //connect to the service
-    private ServiceConnection musicConnection = new ServiceConnection()
-    {
-    	@Override
-    	public void onServiceConnected(ComponentName name, IBinder service) 
-    	{
-    	MusicBinder binder = (MusicBinder)service;
-    	//get service
-    	musicSrv = binder.getService();
-    	//pass list
-    	musicSrv.setList(songList);
-    	musicBound = true;
-    	}
- 
-    	@Override
-    	public void onServiceDisconnected(ComponentName name) 
-    	{
-    	musicBound = false;
-    	}
-    };
-    
+
     @Override
     protected void onStart() 
     {
@@ -107,8 +101,6 @@ public class MainActivity extends Activity implements MediaPlayerControl
 	        startService(playIntent);
     	}
     }
-    
-    
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) 
@@ -118,20 +110,6 @@ public class MainActivity extends Activity implements MediaPlayerControl
         return true;
     }
 
-   /* @Override
-    public boolean onOptionsItemSelected(MenuItem item) 
-    {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_settings) 
-        {
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }*/
-    
     public void getSongList() 
     {
     	  //retrieve song info
@@ -141,40 +119,45 @@ public class MainActivity extends Activity implements MediaPlayerControl
     	
         if(musicCursor!=null && musicCursor.moveToFirst())
         {
-        	  //get columns
-        	  int titleColumn = musicCursor.getColumnIndex
-        	    (android.provider.MediaStore.Audio.Media.TITLE);
-        	  int idColumn = musicCursor.getColumnIndex
-        	    (android.provider.MediaStore.Audio.Media._ID);
-        	  int artistColumn = musicCursor.getColumnIndex
-        	    (android.provider.MediaStore.Audio.Media.ARTIST);
-        	  //add songs to list
-        	  do 
-        	  {
-        	    long thisId = musicCursor.getLong(idColumn);
-        	    String thisTitle = musicCursor.getString(titleColumn);
-        	    String thisArtist = musicCursor.getString(artistColumn);
-        	    songList.add(new Song(thisId, thisTitle, thisArtist));
-        	  }
-        	  while (musicCursor.moveToNext());
+			//get columns
+			int titleColumn = musicCursor.getColumnIndex
+			(android.provider.MediaStore.Audio.Media.TITLE);
+			int idColumn = musicCursor.getColumnIndex
+			(android.provider.MediaStore.Audio.Media._ID);
+			int artistColumn = musicCursor.getColumnIndex
+			(android.provider.MediaStore.Audio.Media.ARTIST);
+			//add songs to list
+			do
+			{
+				long thisId = musicCursor.getLong(idColumn);
+				String thisTitle = musicCursor.getString(titleColumn);
+				String thisArtist = musicCursor.getString(artistColumn);
+				songList.add(new Song(thisId, thisTitle, thisArtist));
+			}
+			while (musicCursor.moveToNext());
         }
     }
-    
-    
-    public void songPicked(View view)
-    {
-    	Intent intent = new Intent(this, SongPickedActivity.class);
-    	TextView textViewArtist = (TextView) findViewById(R.id.song_artist);
-        String message = textViewArtist.getText().toString();
-        String message2 = view.getTag().toString();
-        
-        Integer index = Integer.parseInt(view.getTag().toString());
-        
-        Song currentSong  = (Song)songList.get(index);
 
-    	musicSrv.setSong(Integer.parseInt(view.getTag().toString()));
-    	
-    	musicSrv.playSong();
+	public void songPicked(View view)
+    {
+		//showCoverArtActivity(view);
+		int songIndex = Integer.parseInt(view.getTag().toString());
+		musicSrv.setSong(songIndex);
+		musicSrv.playSong();
+		controller.show();
+	}
+
+	private void showCoverArtActivity(View view)
+	{
+		Intent intent = new Intent(this, SongPickedActivity.class);
+		TextView textViewArtist = (TextView) findViewById(R.id.song_artist);
+		String message = textViewArtist.getText().toString();
+		String message2 = view.getTag().toString();
+
+		Integer index = Integer.parseInt(view.getTag().toString());
+
+		Song currentSong  = (Song)songList.get(index);
+
 		String songPath = musicSrv.getSongPath();
 
 		//String message3 = currentSong.getArtist().toString() + " - " + currentSong.getTitle().toString() + " " + songPath;
@@ -182,22 +165,8 @@ public class MainActivity extends Activity implements MediaPlayerControl
 
 		intent.putExtra(EXTRA_MESSAGE, message3);
 
-		//startActivity(intent);
-    	
-
-    	setController();
-    	
-    	//musicSrv.getPosn();
-    	
-    	if(playbackPaused)
-    	{
-		    setController();
-		    playbackPaused=false;
-    	}
-    	controller.show(0);
-
-
-    }
+		startActivity(intent);
+	}
     
     @Override
     public boolean onOptionsItemSelected(MenuItem item) 
@@ -206,9 +175,7 @@ public class MainActivity extends Activity implements MediaPlayerControl
     	switch (item.getItemId()) 
     	{
     		case R.id.action_end:
-    			stopService(playIntent);
-    			musicSrv=null;
-    			System.exit(0);
+    			finish();
     			break;
     			
     		case R.id.action_shuffle:
@@ -226,196 +193,32 @@ public class MainActivity extends Activity implements MediaPlayerControl
 	    super.onDestroy();
     }
 
-
-
-	@Override
-	public void start() 
-	{
-		musicSrv.go();
-		//controller.show(0);
-	}
-
-
-
-	@Override
-	public void pause() 
-	{
-		playbackPaused=true;
-		musicSrv.pausePlayer();
-	}
-
-
-
-	@Override
-	public int getDuration() 
-	{
-		if(musicSrv!=null && musicBound && musicSrv.isPng())
-		{
-			return musicSrv.getDur();
-		}
-		else 
-		{
-			return 0;
-		}
-	}
-
-
-
-	@Override
-	public int getCurrentPosition() 
-	{
-		if(musicSrv!=null && musicBound && musicSrv.isPng())
-		{
-			return musicSrv.getPosn();
-		}
-		else 
-		{
-			return 0;
-		}
-	}
-
-
-
-	@Override
-	public void seekTo(int pos) 
-	{
-		musicSrv.seek(pos);
-	}
-
-
-	@Override
-	public boolean isPlaying() 
-	{
-		if(musicSrv!=null && musicBound)
-		{
-			 return musicSrv.isPng();
-		} 
-		return false;
-	}
-
-
-
-	@Override
-	public int getBufferPercentage() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-
-
-	@Override
-	public boolean canPause() 
-	{
-		return true;
-	}
-
-	@Override
-	public boolean canSeekBackward() 
-	{
-		return true;
-	}
-
-
-
-	@Override
-	public boolean canSeekForward() 
-	{
-		return true;
-	}
-
-
-
-	@Override
-	public int getAudioSessionId() 
-	{
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
 	private void setController()
 	{
 		//set the controller up
 		controller = new MusicController(this);
 		
-		controller.setPrevNextListeners(new View.OnClickListener() 
-		{
-			@Override
-			public void onClick(View v) 
-			{
-				playNext();
-			}
-		},
-		new View.OnClickListener()
-		{
-			@Override
-			public void onClick(View v) 
-			{
-				playPrev();
-			}
-		});
-		
-		//controller.setBackgroundColor(Color.CYAN);
-		
-		controller.setMediaPlayer(this);
+		controller.setPrevNextListeners(
+				new View.OnClickListener()
+				{
+					@Override
+					public void onClick(View v)
+					{
+						musicSrv.playNext();
+					}
+				},
+				new View.OnClickListener()
+				{
+					@Override
+					public void onClick(View v)
+					{
+						musicSrv.playPrev();
+					}
+				}
+		);
+
+		controller.setMediaPlayer(musicSrv);
 		controller.setAnchorView(findViewById(R.id.song_list));
 		controller.setEnabled(true);
-		
 	}
-	
-	
-	//play next
-	private void playNext()
-	{
-		 musicSrv.playNext();
-		 setController();
-		 if(playbackPaused)
-		 {
-			 setController();
-			 playbackPaused=false;
-		 }
-		 controller.show(0);
-	}
-	 
-	//play previous
-	private void playPrev()
-	{
-		musicSrv.playPrev();
-		setController();
-		if(playbackPaused)
-		{
-		    setController();
-		    playbackPaused=false;
-		}
-		controller.show(0);
-	}
-	
-	@Override
-	protected void onPause()
-	{
-		super.onPause();
-		paused=true;
-	}
-	
-	@Override
-	protected void onResume()
-	{
-		super.onResume();
-		if(paused)
-		{
-			setController();
-			paused=false;
-		}
-	}
-    
-	@Override
-	protected void onStop() 
-	{
-		//controller.hide();
-		super.onStop();
-	}
-	
-	
-	
-
-    
 }

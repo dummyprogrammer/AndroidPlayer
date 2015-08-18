@@ -1,12 +1,13 @@
 package com.player.licenta.androidplayer;
 
 import android.app.Service;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -15,29 +16,26 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.view.View;
-import android.view.View.OnClickListener;
 
 import java.util.Random;
 
-import com.player.licenta.androidplayer.MainActivity;
-
 import android.app.Notification;
 import android.app.PendingIntent;
+import android.widget.MediaController;
 
 public class MusicService extends Service implements
 MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener,
-MediaPlayer.OnCompletionListener 
+MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl
 {
 	//media player
 	private MediaPlayer player;
 	//song list
 	private ArrayList<Song> songs;
 	//current position
-	private int songPosn;
+	private int songIndex;
 	
 	private final IBinder musicBind = new MusicBinder();
-	
+
 	private String songTitle="";
 	private static final int NOTIFY_ID=1;
 	
@@ -51,7 +49,7 @@ MediaPlayer.OnCompletionListener
 		//create the service
 		super.onCreate();
 		//initialize position
-		songPosn=0;
+		songIndex =0;
 		//create player
 		player = new MediaPlayer();
 		initMusicPlayer();
@@ -69,10 +67,8 @@ MediaPlayer.OnCompletionListener
 		player.setOnPreparedListener(this);
 		player.setOnCompletionListener(this);
 		player.setOnErrorListener(this);
-				
 	}
-	
-	
+
 	@Override
 	public boolean onError(MediaPlayer mp, int what, int extra) 
 	{
@@ -106,7 +102,7 @@ MediaPlayer.OnCompletionListener
 	
 	public void setSong(int songIndex)
 	{
-		songPosn=songIndex;
+		this.songIndex = songIndex;
 	}
 	
 
@@ -123,8 +119,6 @@ MediaPlayer.OnCompletionListener
 		player.release();
 		return false;
 	}
-	
-	
 
 	@Override
 	public void onCompletion(MediaPlayer mp) 
@@ -134,31 +128,87 @@ MediaPlayer.OnCompletionListener
 		    mp.reset();
 		    playNext();
 		}
-		
 	}
 	
 	public void setList(ArrayList<Song> theSongs)
 	{
 		songs=theSongs;
 	}
-	
-	
-	public class MusicBinder extends Binder 
+
+	@Override
+	public void start()
 	{
-		MusicService getService() 
-		{
-			return MusicService.this;
-		}
+		player.start();
 	}
-	
+
+	@Override
+	public void pause()
+	{
+		player.pause();
+	}
+
+	@Override
+	public int getDuration()
+	{
+		return player.getDuration();
+	}
+
+	@Override
+	public int getCurrentPosition()
+	{
+		return player.getCurrentPosition();
+	}
+
+	@Override
+	public void seekTo(int pos)
+	{
+		player.seekTo(pos);
+	}
+
+	@Override
+	public boolean isPlaying()
+	{
+		return player.isPlaying();
+	}
+
+	@Override
+	public int getBufferPercentage()
+	{
+		return 0;
+	}
+
+	@Override
+	public boolean canPause()
+	{
+		return true;
+	}
+
+	@Override
+	public boolean canSeekBackward()
+	{
+		return true;
+	}
+
+	@Override
+	public boolean canSeekForward()
+	{
+		return true;
+	}
+
+	@Override
+	public int getAudioSessionId()
+	{
+		return 0;
+	}
+
 	public void playSong()
 	{
 		//play a song
 		player.reset();
 		
 		//get song
-		Song playSong = songs.get(songPosn);
-		songTitle=playSong.getTitle();
+		Song playSong = songs.get(songIndex);
+		songTitle = playSong.getTitle();
 		
 		//get id
 		long currSong = playSong.getID();
@@ -178,47 +228,24 @@ MediaPlayer.OnCompletionListener
 		{
 			Log.e("MUSIC SERVICE", "Error setting data source", e);
 		}
-		
-		player.prepareAsync();
-		
-	}
-	
-	public int getPosn()
-	{
-		return player.getCurrentPosition();
-	}
-		 
-	public int getDur()
-	{
-		return player.getDuration();
-	}
-		 
-	public boolean isPng()
-	{
-		return player.isPlaying();
-	}
-		 
-	public void pausePlayer()
-	{
-		player.pause();
-	}
-		 
-	public void seek(int posn)
-	{
-		player.seekTo(posn);
-	}
-		 
-	public void go()
-	{
-		player.start();
+
+		try
+		{
+			player.prepare();
+			player.start();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
 	}
 	
 	public void playPrev()
 	{
-		songPosn--;
-		if(songPosn < 0)
+		songIndex--;
+		if(songIndex < 0)
 		{
-			songPosn=songs.size()-1;
+			songIndex = songs.size()-1;
 		}
 		playSong();
 	}
@@ -228,19 +255,19 @@ MediaPlayer.OnCompletionListener
 	{
 		if(shuffle)
 		{
-		    int newSong = songPosn;
-		    while(newSong==songPosn)
+		    int newSong = songIndex;
+		    while(newSong== songIndex)
 		    {
 		    	newSong=rand.nextInt(songs.size());
 		    }
-		    songPosn=newSong;
+		    songIndex =newSong;
 		}
 		else
 		{
-			songPosn++;
-		    if(songPosn>=songs.size()) 
+			songIndex++;
+		    if(songIndex >=songs.size())
 	    	{
-		    	songPosn=0;
+		    	songIndex =0;
 	    	}
 		}
 		playSong();
@@ -254,10 +281,8 @@ MediaPlayer.OnCompletionListener
 	
 	public void setShuffle()
 	{
-		if(shuffle) shuffle=false;
-		else shuffle=true;
+		shuffle = !shuffle;
 	}
-
 
 	public String getRealPathFromURI(Context context, Uri contentUri)
 	{
@@ -284,7 +309,11 @@ MediaPlayer.OnCompletionListener
 		return songPath;
 	}
 
-	
-	
-	
+	public class MusicBinder extends Binder
+	{
+		MusicService getService()
+		{
+			return MusicService.this;
+		}
+	}
 }
