@@ -33,9 +33,6 @@ import android.view.View;
 
 import android.widget.MediaController.MediaPlayerControl;
 
-
-
-
 public class MainActivity extends Activity implements MediaPlayerControl 
 {
 
@@ -166,7 +163,6 @@ public class MainActivity extends Activity implements MediaPlayerControl
     
     public void songPicked(View view)
     {
-    	
     	Intent intent = new Intent(this, SongPickedActivity.class);
     	TextView textViewArtist = (TextView) findViewById(R.id.song_artist);
         String message = textViewArtist.getText().toString();
@@ -175,18 +171,20 @@ public class MainActivity extends Activity implements MediaPlayerControl
         Integer index = Integer.parseInt(view.getTag().toString());
         
         Song currentSong  = (Song)songList.get(index);
-        String message3 = currentSong.getArtist().toString() + " - " + currentSong.getTitle().toString();
-        
-        
-        intent.putExtra(EXTRA_MESSAGE, message3);
-    	
-    	startActivity(intent);
-    	
+
     	musicSrv.setSong(Integer.parseInt(view.getTag().toString()));
     	
     	musicSrv.playSong();
+		String songPath = musicSrv.getSongPath();
+
+		//String message3 = currentSong.getArtist().toString() + " - " + currentSong.getTitle().toString() + " " + songPath;
+		String message3 = songPath;
+
+		intent.putExtra(EXTRA_MESSAGE, message3);
+
+		//startActivity(intent);
     	
-    	/*
+
     	setController();
     	
     	//musicSrv.getPosn();
@@ -197,7 +195,8 @@ public class MainActivity extends Activity implements MediaPlayerControl
 		    playbackPaused=false;
     	}
     	controller.show(0);
-    	*/
+
+
     }
     
     @Override
@@ -345,9 +344,10 @@ public class MainActivity extends Activity implements MediaPlayerControl
 			{
 				playNext();
 			}
-		}, new View.OnClickListener() 
+		},
+		new View.OnClickListener()
 		{
-		@Override
+			@Override
 			public void onClick(View v) 
 			{
 				playPrev();

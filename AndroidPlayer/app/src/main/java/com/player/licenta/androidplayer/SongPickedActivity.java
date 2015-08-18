@@ -6,12 +6,16 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.MediaMetadataRetriever;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.TextView;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.MediaController.MediaPlayerControl;
 
 public class SongPickedActivity extends Activity implements MediaPlayerControl 
@@ -21,25 +25,23 @@ public class SongPickedActivity extends Activity implements MediaPlayerControl
 	private boolean musicBound=false;
 	private boolean paused=false, playbackPaused=false;
 	private MusicController controller;
+	private ImageView coverArt;
+	private String songFilePath;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) 
 	{
-		 super.onCreate(savedInstanceState);
+ 		super.onCreate(savedInstanceState);
 
-		    // Get the message from the intent
-		    Intent intent = getIntent();
-		    String message = intent.getStringExtra(MainActivity.EXTRA_MESSAGE);
+		setContentView(R.layout.song_picked);
 
-		    // Create the text view
-		    TextView textView = new TextView(this);
-		    textView.setTextSize(40);
-		    textView.setText(message);
+		// Get the message from the intent
+		Intent intent = getIntent();
+		songFilePath = intent.getStringExtra(MainActivity.EXTRA_MESSAGE);
 
-		    // Set the text view as the activity layout
-		    setContentView(textView);
-		    setController();
-		    controller.show(0);
+		coverArt = (ImageView)findViewById(R.id.coverArt);
+
+		extractAlbumArt();
 	}
 
 	@Override
@@ -48,6 +50,12 @@ public class SongPickedActivity extends Activity implements MediaPlayerControl
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.song_picked, menu);
 		return true;
+	}
+
+	@Override
+	protected void onDestroy()
+	{
+		super.onDestroy();
 	}
 
 	@Override
@@ -245,7 +253,25 @@ public class SongPickedActivity extends Activity implements MediaPlayerControl
 		}
 		controller.show(0);
 	}
-	
-	
-	
+
+
+	public void extractAlbumArt()
+	{
+		android.media.MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+		mmr.setDataSource(songFilePath);
+
+		byte[] data = mmr.getEmbeddedPicture();
+		if (data != null)
+		{
+			Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
+			coverArt.setImageBitmap(bitmap); //associated cover art in bitmap
+		}
+		else
+		{
+			coverArt.setImageResource(R.drawable.fallback_cover); //any default cover resourse folder
+		}
+
+		coverArt.setAdjustViewBounds(true);
+		coverArt.setLayoutParams(new RelativeLayout.LayoutParams(500, 500));
+	}
 }

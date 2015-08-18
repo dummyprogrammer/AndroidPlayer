@@ -29,8 +29,8 @@ public class SongAdapter extends BaseAdapter
 	
 	public SongAdapter(Context c, ArrayList<Song> theSongs)
 	{
-		songs=theSongs;
-		songInf=LayoutInflater.from(c);
+		songs = theSongs;
+		songInf = LayoutInflater.from(c);
 	}
 	
 	
