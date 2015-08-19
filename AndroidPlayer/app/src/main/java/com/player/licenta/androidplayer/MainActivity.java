@@ -140,7 +140,6 @@ public class MainActivity extends Activity
 
 	public void songPicked(View view)
     {
-
 		int songIndex = Integer.parseInt(view.getTag().toString());
 		musicSrv.setSong(songIndex);
 		musicSrv.playSong();

@@ -4,11 +4,14 @@ import com.player.licenta.androidplayer.MusicService.MusicBinder;
 
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.Menu;
@@ -18,6 +21,8 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.MediaController.MediaPlayerControl;
 
+import java.util.ArrayList;
+
 public class SongPickedActivity extends Activity
 {
 	private boolean musicBound=false;
@@ -26,7 +31,8 @@ public class SongPickedActivity extends Activity
 	private ImageView coverArt;
 	private String songFilePath;
 	private MusicService musicSrv;
-	
+
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) 
 	{
@@ -46,7 +52,6 @@ public class SongPickedActivity extends Activity
 
 		String title = songArtist + " - " + songTitle;
 		setTitle(title);
-
 		extractAlbumArt();
 	}
 
@@ -95,28 +100,11 @@ public class SongPickedActivity extends Activity
 		}
 
 		coverArt.setAdjustViewBounds(true);
-		coverArt.setLayoutParams(new RelativeLayout.LayoutParams(500, 500));
+		coverArt.setLayoutParams(new RelativeLayout.LayoutParams(1000, 500));
+		coverArt.getLayoutParams().height = 1000;
+		//coverArt.getLayoutParams().width =  ;
 	}
 
-	//connect to the service
-	private ServiceConnection musicConnection = new ServiceConnection()
-	{
-		@Override
-		public void onServiceConnected(ComponentName name, IBinder service)
-		{
-			MusicBinder binder = (MusicBinder)service;
-			musicSrv = binder.getService();
-			//musicSrv.setList(songList);
-			musicBound = true;
-			setController();
-		}
-
-		@Override
-		public void onServiceDisconnected(ComponentName name)
-		{
-			musicBound = false;
-		}
-	};
 
 	private void setController()
 	{		//set the controller up
@@ -145,5 +133,6 @@ public class SongPickedActivity extends Activity
 		controller.setAnchorView(findViewById(R.id.song_list));
 		controller.setEnabled(true);
 	}
+
 
 }

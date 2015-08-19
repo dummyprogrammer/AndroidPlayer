@@ -33,85 +33,87 @@ MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl
 	private ArrayList<Song> songs;
 	//current position
 	private int songIndex;
-	
+
 	private final IBinder musicBind = new MusicBinder();
 
-	private String songTitle="";
-	private static final int NOTIFY_ID=1;
-	
-	private boolean shuffle=false;
+	private String songTitle = "";
+	private static final int NOTIFY_ID = 1;
+
+	private boolean shuffle = false;
 	private Random rand;
 
 	private String songPath;
-	
+
+	private boolean trackCompleted = false;
+
 	public void onCreate()
 	{
 		//create the service
 		super.onCreate();
 		//initialize position
-		songIndex =0;
+		songIndex = 0;
 		//create player
 		player = new MediaPlayer();
 		initMusicPlayer();
-		
-		rand=new Random();
+
+		rand = new Random();
 	}
-	
+
 	public void initMusicPlayer()
 	{
 		//set player properties
 		player.setWakeMode(getApplicationContext(),
-				  PowerManager.PARTIAL_WAKE_LOCK);
-				player.setAudioStreamType(AudioManager.STREAM_MUSIC);
-				
+				PowerManager.PARTIAL_WAKE_LOCK);
+		player.setAudioStreamType(AudioManager.STREAM_MUSIC);
+
 		player.setOnPreparedListener(this);
 		player.setOnCompletionListener(this);
 		player.setOnErrorListener(this);
 	}
 
 	@Override
-	public boolean onError(MediaPlayer mp, int what, int extra) 
+	public boolean onError(MediaPlayer mp, int what, int extra)
 	{
 		mp.reset();
 		return false;
 	}
 
 	@Override
-	public void onPrepared(MediaPlayer mp) 
+	public void onPrepared(MediaPlayer mp)
 	{
 		//start playback
 		mp.start();
-		
+
 		Intent notIntent = new Intent(this, MainActivity.class);
 		notIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		PendingIntent pendInt = PendingIntent.getActivity(this, 0,
-		  notIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-		 
+				notIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
 		Notification.Builder builder = new Notification.Builder(this);
-		 
+
 		builder.setContentIntent(pendInt)
-		  .setSmallIcon(R.drawable.play)
-		  .setTicker(songTitle)
-		  .setOngoing(true)
-		  .setContentTitle("Playing")
-		  .setContentText(songTitle);
+				.setSmallIcon(R.drawable.play)
+				.setTicker(songTitle)
+				.setOngoing(true)
+				.setContentTitle("Playing")
+				.setContentText(songTitle);
 		Notification not = builder.build();
-		 
+
 		startForeground(NOTIFY_ID, not);
 	}
-	
+
 	public void setSong(int songIndex)
 	{
 		this.songIndex = songIndex;
 	}
-	
+
 
 	@Override
-	public IBinder onBind(Intent intent) 
+	public IBinder onBind(Intent intent)
 	{
 		return musicBind;
 	}
-	
+
 	@Override
 	public boolean onUnbind(Intent intent)
 	{
@@ -121,18 +123,25 @@ MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl
 	}
 
 	@Override
-	public void onCompletion(MediaPlayer mp) 
+	public void onCompletion(MediaPlayer mp)
 	{
-		if(player.getCurrentPosition()>0)
+		if (player.getCurrentPosition() > 0)
 		{
-		    mp.reset();
-		    playNext();
+			mp.reset();
+			playNext();
+			trackCompleted = true;
 		}
 	}
-	
+
+	public boolean isTrackCompleted()
+	{
+		return trackCompleted;
+	}
+
+
 	public void setList(ArrayList<Song> theSongs)
 	{
-		songs=theSongs;
+		songs = theSongs;
 	}
 
 	@Override
@@ -205,26 +214,26 @@ MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl
 	{
 		//play a song
 		player.reset();
-		
+
 		//get song
 		Song playSong = songs.get(songIndex);
 		songTitle = playSong.getTitle();
-		
+
 		//get id
 		long currSong = playSong.getID();
 		//set uri
 		Uri trackUri = ContentUris.withAppendedId(
-		  android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-		  currSong);
+				android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+				currSong);
 
 		Context context = getApplicationContext();
 		songPath = getRealPathFromURI(context, trackUri);
-		
+
 		try
 		{
 			player.setDataSource(getApplicationContext(), trackUri);
 		}
-		catch(Exception e)
+		catch (Exception e)
 		{
 			Log.e("MUSIC SERVICE", "Error setting data source", e);
 		}
@@ -239,46 +248,46 @@ MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl
 			e.printStackTrace();
 		}
 	}
-	
+
 	public void playPrev()
 	{
 		songIndex--;
-		if(songIndex < 0)
+		if (songIndex < 0)
 		{
-			songIndex = songs.size()-1;
+			songIndex = songs.size() - 1;
 		}
 		playSong();
 	}
-	
+
 	//skip to next
 	public void playNext()
 	{
-		if(shuffle)
+		if (shuffle)
 		{
-		    int newSong = songIndex;
-		    while(newSong== songIndex)
-		    {
-		    	newSong=rand.nextInt(songs.size());
-		    }
-		    songIndex =newSong;
+			int newSong = songIndex;
+			while (newSong == songIndex)
+			{
+				newSong = rand.nextInt(songs.size());
+			}
+			songIndex = newSong;
 		}
 		else
 		{
 			songIndex++;
-		    if(songIndex >=songs.size())
-	    	{
-		    	songIndex =0;
-	    	}
+			if (songIndex >= songs.size())
+			{
+				songIndex = 0;
+			}
 		}
 		playSong();
 	}
-	
+
 	@Override
-	public void onDestroy() 
+	public void onDestroy()
 	{
 		stopForeground(true);
 	}
-	
+
 	public void setShuffle()
 	{
 		shuffle = !shuffle;
@@ -289,8 +298,8 @@ MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl
 		Cursor cursor = null;
 		try
 		{
-			String[] proj = { MediaStore.Images.Media.DATA };
-			cursor = context.getContentResolver().query(contentUri,  proj, null, null, null);
+			String[] proj = {MediaStore.Images.Media.DATA};
+			cursor = context.getContentResolver().query(contentUri, proj, null, null, null);
 			int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
 			cursor.moveToFirst();
 			return cursor.getString(column_index);
@@ -315,7 +324,6 @@ MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl
 	public String getSongPath()
 	{
 		return songPath;
+
 	}
-
-
 }
