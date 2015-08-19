@@ -25,6 +25,7 @@ public class SongPickedActivity extends Activity
 	private MusicController controller;
 	private ImageView coverArt;
 	private String songFilePath;
+	private MusicService musicSrv;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) 
@@ -35,9 +36,16 @@ public class SongPickedActivity extends Activity
 
 		// Get the message from the intent
 		Intent intent = getIntent();
-		songFilePath = intent.getStringExtra(MainActivity.EXTRA_MESSAGE);
+		Bundle extras = intent.getExtras();
+
+		songFilePath = extras.getString("SONG_PATH");
+		String songArtist = extras.getString("SONG_ARTIST");
+		String songTitle = extras.getString("SONG_TITLE");
 
 		coverArt = (ImageView)findViewById(R.id.coverArt);
+
+		String title = songArtist + " - " + songTitle;
+		setTitle(title);
 
 		extractAlbumArt();
 	}
@@ -56,7 +64,7 @@ public class SongPickedActivity extends Activity
 		super.onDestroy();
 	}
 
-	@Override
+/*	@Override
 	public boolean onOptionsItemSelected(MenuItem item) 
 	{
 		// Handle action bar item clicks here. The action bar will
@@ -68,7 +76,7 @@ public class SongPickedActivity extends Activity
 			return true;
 		}
 		return super.onOptionsItemSelected(item);
-	}
+	}*/
 
 	public void extractAlbumArt()
 	{
@@ -89,4 +97,53 @@ public class SongPickedActivity extends Activity
 		coverArt.setAdjustViewBounds(true);
 		coverArt.setLayoutParams(new RelativeLayout.LayoutParams(500, 500));
 	}
+
+	//connect to the service
+	private ServiceConnection musicConnection = new ServiceConnection()
+	{
+		@Override
+		public void onServiceConnected(ComponentName name, IBinder service)
+		{
+			MusicBinder binder = (MusicBinder)service;
+			musicSrv = binder.getService();
+			//musicSrv.setList(songList);
+			musicBound = true;
+			setController();
+		}
+
+		@Override
+		public void onServiceDisconnected(ComponentName name)
+		{
+			musicBound = false;
+		}
+	};
+
+	private void setController()
+	{		//set the controller up
+		controller = new MusicController(this);
+
+		controller.setPrevNextListeners(
+				new View.OnClickListener()
+				{
+					@Override
+					public void onClick(View v)
+					{
+						musicSrv.playNext();
+					}
+				},
+				new View.OnClickListener()
+				{
+					@Override
+					public void onClick(View v)
+					{
+						musicSrv.playPrev();
+					}
+				}
+		);
+
+		controller.setMediaPlayer(musicSrv);
+		controller.setAnchorView(findViewById(R.id.song_list));
+		controller.setEnabled(true);
+	}
+
 }

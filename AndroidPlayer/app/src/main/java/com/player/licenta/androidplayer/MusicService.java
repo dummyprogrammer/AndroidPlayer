@@ -304,11 +304,6 @@ MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl
 		}
 	}
 
-	public String getSongPath()
-	{
-		return songPath;
-	}
-
 	public class MusicBinder extends Binder
 	{
 		MusicService getService()
@@ -316,4 +311,11 @@ MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl
 			return MusicService.this;
 		}
 	}
+
+	public String getSongPath()
+	{
+		return songPath;
+	}
+
+
 }

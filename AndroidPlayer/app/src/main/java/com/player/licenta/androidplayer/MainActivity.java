@@ -140,30 +140,39 @@ public class MainActivity extends Activity
 
 	public void songPicked(View view)
     {
-		//showCoverArtActivity(view);
+
 		int songIndex = Integer.parseInt(view.getTag().toString());
 		musicSrv.setSong(songIndex);
 		musicSrv.playSong();
 		controller.show();
+
+		showCoverArtActivity(view);
 	}
 
 	private void showCoverArtActivity(View view)
 	{
 		Intent intent = new Intent(this, SongPickedActivity.class);
-		TextView textViewArtist = (TextView) findViewById(R.id.song_artist);
-		String message = textViewArtist.getText().toString();
-		String message2 = view.getTag().toString();
-
 		Integer index = Integer.parseInt(view.getTag().toString());
 
 		Song currentSong  = (Song)songList.get(index);
+		String songTitle = currentSong.getTitle().toString();
+		String songArtist = currentSong.getArtist().toString();
 
 		String songPath = musicSrv.getSongPath();
 
-		//String message3 = currentSong.getArtist().toString() + " - " + currentSong.getTitle().toString() + " " + songPath;
-		String message3 = songPath;
+		Bundle extras = new Bundle();
+		extras.putString("SONG_PATH", songPath);
+		extras.putString("SONG_ARTIST", songArtist);
+		extras.putString("SONG_TITLE", songTitle);
 
-		intent.putExtra(EXTRA_MESSAGE, message3);
+		intent.putExtras(extras);
+
+/*		Context context = getApplicationContext();
+		CharSequence text = songPath;
+		int duration = Toast.LENGTH_SHORT;
+
+		Toast toast = Toast.makeText(context, text, duration);
+		toast.show();*/
 
 		startActivity(intent);
 	}
@@ -194,8 +203,7 @@ public class MainActivity extends Activity
     }
 
 	private void setController()
-	{
-		//set the controller up
+	{		//set the controller up
 		controller = new MusicController(this);
 		
 		controller.setPrevNextListeners(
