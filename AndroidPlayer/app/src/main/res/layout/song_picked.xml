@@ -6,14 +6,18 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
+    android:background="#000000"
     tools:context=".SongPickedActivity" >
 
 
     <ImageView
         android:id="@+id/coverArt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/fallback_cover"/>
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:src="@drawable/fallback_cover"
+        android:scaleType="fitXY"/>
+
+
 
 
 </RelativeLayout>

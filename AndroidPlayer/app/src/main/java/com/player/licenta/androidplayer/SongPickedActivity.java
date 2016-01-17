@@ -4,22 +4,20 @@ import com.player.licenta.androidplayer.MusicService.MusicBinder;
 
 import android.app.Activity;
 import android.content.ComponentName;
-import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
-import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.util.Log;
 import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
-import android.widget.MediaController.MediaPlayerControl;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 
@@ -31,7 +29,56 @@ public class SongPickedActivity extends Activity
 	private ImageView coverArt;
 	private String songFilePath;
 	private MusicService musicSrv;
+	private ArrayList<Song> songList;
+	private Intent playIntent;
+    private SongPickedActivity mInstance;
 
+
+	private final static String TAG = "SongPickedActivity";
+
+	private Context context;
+
+	//connect to the service
+	private ServiceConnection musicConnection = new ServiceConnection()
+	{
+		@Override
+		public void onServiceConnected(ComponentName name, IBinder service)
+		{
+			MusicBinder binder = (MusicBinder)service;
+			musicSrv = binder.getService();
+			musicSrv.setList(songList);
+			musicBound = true;
+            setController();
+		}
+
+		@Override
+		public void onServiceDisconnected(ComponentName name)
+		{
+			musicBound = false;
+		}
+	};
+
+	private void showControllerDelayed()
+	{
+		runOnUiThread(new Runnable() {
+
+			@Override
+			public void run()
+			{
+				final Handler handler = new Handler();
+				handler.postDelayed(
+                    new Runnable()
+				{
+					@Override
+					public void run()
+					{
+                        controller.show();
+                        controller.clearFocus();
+					}
+				}, 1000);
+			}
+		});
+	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) 
@@ -40,9 +87,13 @@ public class SongPickedActivity extends Activity
 
 		setContentView(R.layout.song_picked);
 
+        mInstance = this;
+
 		// Get the message from the intent
 		Intent intent = getIntent();
 		Bundle extras = intent.getExtras();
+
+		songList = (ArrayList<Song>)intent.getSerializableExtra("songlist");
 
 		songFilePath = extras.getString("SONG_PATH");
 		String songArtist = extras.getString("SONG_ARTIST");
@@ -52,7 +103,32 @@ public class SongPickedActivity extends Activity
 
 		String title = songArtist + " - " + songTitle;
 		setTitle(title);
+
 		extractAlbumArt();
+		Log.d(TAG, "onCreate() called");
+	}
+
+	@Override
+	protected void onStart()
+	{
+		super.onStart();
+		if(playIntent == null)
+		{
+			playIntent = new Intent(this, MusicService.class);
+			bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
+			startService(playIntent);
+		}
+	}
+
+	@Override
+	protected void onPause()
+	{
+        if (controller != null)
+        {
+            controller.hide();
+        }
+		super.onPause();
+		Log.d(TAG, "onPause() called");
 	}
 
 	@Override
@@ -62,12 +138,28 @@ public class SongPickedActivity extends Activity
 		getMenuInflater().inflate(R.menu.song_picked, menu);
 		return true;
 	}
+	@Override
+	protected void onStop()
+	{
+		super.onStop();
+		Log.d(TAG, "onStop() called");
+	}
 
 	@Override
 	protected void onDestroy()
 	{
+		Log.d(TAG, "onDestroy called");
+
+        if(controller != null)
+        {
+            controller.hide();
+        }
+		stopService(playIntent);
+        unbindService(musicConnection);
+
 		super.onDestroy();
 	}
+
 
 /*	@Override
 	public boolean onOptionsItemSelected(MenuItem item) 
@@ -96,13 +188,24 @@ public class SongPickedActivity extends Activity
 		}
 		else
 		{
-			coverArt.setImageResource(R.drawable.fallback_cover); //any default cover resourse folder
+			coverArt.setImageResource(R.drawable.fallback_cover); //any default cover resource folder
 		}
 
-		coverArt.setAdjustViewBounds(true);
+		/*coverArt.setAdjustViewBounds(true);
 		coverArt.setLayoutParams(new RelativeLayout.LayoutParams(1000, 500));
-		coverArt.getLayoutParams().height = 1000;
+		coverArt.getLayoutParams().height = 1000;*/
 		//coverArt.getLayoutParams().width =  ;
+
+		coverArt.setOnTouchListener(new OnSwipeTouchListener(getApplicationContext())
+		{
+			@Override
+			public void onSwipeRight()
+			{
+				Toast.makeText(getApplicationContext(), "Swipe right detected",
+						Toast.LENGTH_LONG).show();
+				onBackPressed();
+			}
+		});
 	}
 
 
@@ -130,9 +233,27 @@ public class SongPickedActivity extends Activity
 		);
 
 		controller.setMediaPlayer(musicSrv);
-		controller.setAnchorView(findViewById(R.id.song_list));
+		controller.setAnchorView(findViewById(R.id.coverArt));
 		controller.setEnabled(true);
+        showControllerDelayed();
 	}
 
+	@Override
+	public void onBackPressed()
+	{
+		super.onBackPressed();
+		finish();
+		Log.d(TAG, "onBackPressed called");
+	}
 
+	@Override
+	public void onResume()
+	{
+		super.onResume();
+
+		if(controller != null)
+		{
+			controller.show();
+		}
+	}
 }

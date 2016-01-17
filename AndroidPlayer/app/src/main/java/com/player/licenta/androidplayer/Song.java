@@ -1,6 +1,11 @@
 package com.player.licenta.androidplayer;
 
-public class Song 
+import android.os.Parcel;
+import android.os.Parcelable;
+
+import java.io.Serializable;
+
+public class Song implements Serializable
 {
 	private long id;
 	private String title;
@@ -27,8 +32,5 @@ public class Song
 	{
 		return artist;
 	}
-	
-	
-	
 
 }

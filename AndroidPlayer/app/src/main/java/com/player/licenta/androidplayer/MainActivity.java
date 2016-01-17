@@ -2,6 +2,7 @@ package com.player.licenta.androidplayer;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View.OnClickListener;
@@ -36,18 +37,19 @@ public class MainActivity extends Activity
 {
 	private ArrayList<Song> songList;
 	private ListView songView;
-	
+
 	private MusicService musicSrv;
 	private Intent playIntent;
 	private boolean musicBound=false;
-	
+
 	private MusicController controller;
-	
+
 	private SongAdapter songAdt;
-	
+
 	private boolean paused=false, playbackPaused=false;
-	
+
 	public final static String EXTRA_MESSAGE = "com.mycompany.myfirstapp.MESSAGE";
+	private final static String TAG = "MainActivity";
 
 	//connect to the service
 	private ServiceConnection musicConnection = new ServiceConnection()
@@ -70,28 +72,30 @@ public class MainActivity extends Activity
 	};
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) 
+    protected void onCreate(Bundle savedInstanceState)
     {
 		super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         songView = (ListView)findViewById(R.id.song_list);
         songList = new ArrayList<Song>();
 		getSongList();
-        
+
         Collections.sort(songList, new Comparator<Song>()
-        {
-        	public int compare(Song a, Song b)
-        	{
-        		return a.getTitle().compareTo(b.getTitle());
-        	}
-        });
-        
+		{
+			public int compare(Song a, Song b)
+			{
+				return a.getTitle().compareTo(b.getTitle());
+			}
+		});
+
         songAdt = new SongAdapter(this, songList);
         songView.setAdapter(songAdt);
-    }
+
+		Log.d(TAG, "onCreate called");
+	}
 
     @Override
-    protected void onStart() 
+    protected void onStart()
     {
     	super.onStart();
     	if(playIntent==null)
@@ -100,23 +104,40 @@ public class MainActivity extends Activity
 	        bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
 	        startService(playIntent);
     	}
+		Log.d(TAG, "onStart called");
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) 
+    protected void onResume()
+    {
+        super.onResume();
+        if (controller != null)
+        {
+            controller.show();
+        }
+    }
+
+    @Override
+    protected void onPause()
+    {
+        super.onPause();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu)
     {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
 
-    public void getSongList() 
+    public void getSongList()
     {
     	  //retrieve song info
     	ContentResolver musicResolver = getContentResolver();
     	Uri musicUri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
     	Cursor musicCursor = musicResolver.query(musicUri, null, null, null, null);
-    	
+
         if(musicCursor!=null && musicCursor.moveToFirst())
         {
 			//get columns
@@ -166,6 +187,8 @@ public class MainActivity extends Activity
 
 		intent.putExtras(extras);
 
+		intent.putExtra("songlist", songList);
+
 /*		Context context = getApplicationContext();
 		CharSequence text = songPath;
 		int duration = Toast.LENGTH_SHORT;
@@ -175,36 +198,40 @@ public class MainActivity extends Activity
 
 		startActivity(intent);
 	}
-    
+
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) 
+    public boolean onOptionsItemSelected(MenuItem item)
     {
     	//menu item selected
-    	switch (item.getItemId()) 
+    	switch (item.getItemId())
     	{
     		case R.id.action_end:
     			finish();
     			break;
-    			
+
     		case R.id.action_shuffle:
     			 musicSrv.setShuffle();
     			 break;
     	}
     	return super.onOptionsItemSelected(item);
     }
-    
+
     @Override
-    protected void onDestroy() 
-    {
+    protected void onDestroy()
+	{
+        Log.d(TAG, "onDestroy called");
+
+        controller.hide();
 	    stopService(playIntent);
-	    musicSrv=null;
-	    super.onDestroy();
+		unbindService(musicConnection);
+
+        super.onDestroy();
     }
 
 	private void setController()
 	{		//set the controller up
 		controller = new MusicController(this);
-		
+
 		controller.setPrevNextListeners(
 				new View.OnClickListener()
 				{
@@ -228,4 +255,7 @@ public class MainActivity extends Activity
 		controller.setAnchorView(findViewById(R.id.song_list));
 		controller.setEnabled(true);
 	}
+
+
+
 }
