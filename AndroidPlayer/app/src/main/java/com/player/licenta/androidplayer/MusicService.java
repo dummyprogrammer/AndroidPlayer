@@ -27,6 +27,13 @@ public class MusicService extends Service implements
 MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener,
 MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl
 {
+    public interface OnSongChangedListener
+    {
+        void onSongChanged(Song song);
+    }
+
+    OnSongChangedListener onSongChangedListener = null;
+
 	//media player
 	private MediaPlayer player;
 	//song list
@@ -44,14 +51,12 @@ MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl
 
 	private String songPath;
 
-	private boolean trackCompleted = false;
-
 	public void onCreate()
 	{
 		//create the service
 		super.onCreate();
 		//initialize position
-		songIndex = 0;
+		songIndex = -1;
 		//create player
 		player = new MediaPlayer();
 		initMusicPlayer();
@@ -129,15 +134,12 @@ MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl
 		{
 			mp.reset();
 			playNext();
-			trackCompleted = true;
+            if(onSongChangedListener != null)
+            {
+                onSongChangedListener.onSongChanged(getCurrentSong());
+            }
 		}
 	}
-
-	public boolean isTrackCompleted()
-	{
-		return trackCompleted;
-	}
-
 
 	public void setList(ArrayList<Song> theSongs)
 	{
@@ -210,76 +212,80 @@ MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl
 		return 0;
 	}
 
-	public void playSong()
+	public void playSong(int index)
 	{
-		//play a song
-		player.reset();
-
-		//get song
-		Song playSong = songs.get(songIndex);
-		songTitle = playSong.getTitle();
-
-		//get id
-		long currSong = playSong.getID();
-		//set uri
-		Uri trackUri = ContentUris.withAppendedId(
-				android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-				currSong);
-
-		Context context = getApplicationContext();
-		songPath = getRealPathFromURI(context, trackUri);
-
-		try
+		if(index >= 0 && index < songs.size())
 		{
-			player.setDataSource(getApplicationContext(), trackUri);
-		}
-		catch (Exception e)
-		{
-			Log.e("MUSIC SERVICE", "Error setting data source", e);
-		}
+			songIndex = index;
 
-		try
-		{
-			player.prepare();
-			player.start();
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
+			//play a song
+			player.reset();
+
+			//get song
+			Song playSong = songs.get(songIndex);
+			songTitle = playSong.getTitle();
+
+			//get id
+			long currSong = playSong.getID();
+			//set uri
+			Uri trackUri = ContentUris.withAppendedId(
+					android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+					currSong);
+
+			Context context = getApplicationContext();
+			songPath = getRealPathFromURI(context, trackUri);
+
+			try
+			{
+				player.setDataSource(getApplicationContext(), trackUri);
+			}
+			catch (Exception e)
+			{
+				Log.e("MUSIC SERVICE", "Error setting data source", e);
+			}
+
+			try
+			{
+				player.prepare();
+				player.start();
+			}
+			catch (IOException e)
+			{
+				e.printStackTrace();
+			}
 		}
 	}
 
 	public void playPrev()
 	{
-		songIndex--;
-		if (songIndex < 0)
+		int prevSongIndex = songIndex - 1;
+		if (prevSongIndex < 0)
 		{
-			songIndex = songs.size() - 1;
+			prevSongIndex = songs.size() - 1;
 		}
-		playSong();
+		playSong(prevSongIndex);
 	}
 
 	//skip to next
 	public void playNext()
 	{
+		int nextSongIndex = songIndex;
 		if (shuffle)
 		{
-			int newSong = songIndex;
-			while (newSong == songIndex)
+			while (nextSongIndex == songIndex)
 			{
-				newSong = rand.nextInt(songs.size());
+				nextSongIndex = rand.nextInt(songs.size());
 			}
-			songIndex = newSong;
 		}
 		else
 		{
-			songIndex++;
-			if (songIndex >= songs.size())
+			nextSongIndex++;
+			if (nextSongIndex >= songs.size())
 			{
-				songIndex = 0;
+				nextSongIndex = 0;
 			}
 		}
-		playSong();
+		playSong(nextSongIndex);
 	}
 
 	@Override
@@ -324,6 +330,40 @@ MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl
 	public String getSongPath()
 	{
 		return songPath;
+	}
 
+	public int getSongIndex()
+	{
+		return songIndex;
+	}
+
+	public Song getCurrentSong()
+	{
+		if(songIndex >= 0 && songIndex < songs.size())
+		{
+			return songs.get(songIndex);
+		}
+
+		return null;
+	}
+
+    public void setOnSongFinishedListener(OnSongChangedListener listener)
+    {
+        onSongChangedListener = listener;
+    }
+
+	public void setVolume(int volume)
+	{
+		if(volume < 0)
+		{
+			volume = 0;
+		}
+		else if(volume > 100)
+		{
+			volume = 100;
+		}
+
+		float normalizedVolume = volume/100f;
+		player.setVolume(normalizedVolume, normalizedVolume);
 	}
 }

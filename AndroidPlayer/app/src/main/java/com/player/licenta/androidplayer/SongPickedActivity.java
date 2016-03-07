@@ -27,7 +27,6 @@ public class SongPickedActivity extends Activity
 	private boolean paused=false, playbackPaused=false;
 	private MusicController controller;
 	private ImageView coverArt;
-	private String songFilePath;
 	private MusicService musicSrv;
 	private ArrayList<Song> songList;
 	private Intent playIntent;
@@ -95,18 +94,23 @@ public class SongPickedActivity extends Activity
 
 		songList = (ArrayList<Song>)intent.getSerializableExtra("songlist");
 
-		songFilePath = extras.getString("SONG_PATH");
+		String songFilePath = extras.getString("SONG_PATH");
 		String songArtist = extras.getString("SONG_ARTIST");
 		String songTitle = extras.getString("SONG_TITLE");
 
 		coverArt = (ImageView)findViewById(R.id.coverArt);
 
-		String title = songArtist + " - " + songTitle;
-		setTitle(title);
+        updateTitle(songArtist, songTitle);
+		extractAlbumArt(songFilePath);
 
-		extractAlbumArt();
 		Log.d(TAG, "onCreate() called");
 	}
+
+    private void updateTitle(String artist, String songName)
+    {
+        String title = artist + " - " + songName;
+        setTitle(title);
+    }
 
 	@Override
 	protected void onStart()
@@ -175,7 +179,7 @@ public class SongPickedActivity extends Activity
 		return super.onOptionsItemSelected(item);
 	}*/
 
-	public void extractAlbumArt()
+	public void extractAlbumArt(String songFilePath)
 	{
 		android.media.MediaMetadataRetriever mmr = new MediaMetadataRetriever();
 		mmr.setDataSource(songFilePath);
@@ -220,6 +224,7 @@ public class SongPickedActivity extends Activity
 					public void onClick(View v)
 					{
 						musicSrv.playNext();
+						updateArtwork();
 					}
 				},
 				new View.OnClickListener()
@@ -228,15 +233,39 @@ public class SongPickedActivity extends Activity
 					public void onClick(View v)
 					{
 						musicSrv.playPrev();
+						updateArtwork();
 					}
 				}
 		);
-
+        musicSrv.setOnSongFinishedListener(
+            new MusicService.OnSongChangedListener()
+            {
+                @Override
+                public void onSongChanged(Song newSong)
+                {
+                    updateArtwork();
+                }
+            }
+        );
 		controller.setMediaPlayer(musicSrv);
 		controller.setAnchorView(findViewById(R.id.coverArt));
 		controller.setEnabled(true);
         showControllerDelayed();
 	}
+
+	private void updateArtwork()
+	{
+		Song currentSong = musicSrv.getCurrentSong();
+		if(currentSong != null)
+		{
+            extractAlbumArt(musicSrv.getSongPath());
+
+            String songTitle = currentSong.getTitle().toString();
+			String songArtist = currentSong.getArtist().toString();
+            updateTitle(songArtist, songTitle);
+        }
+	}
+
 
 	@Override
 	public void onBackPressed()

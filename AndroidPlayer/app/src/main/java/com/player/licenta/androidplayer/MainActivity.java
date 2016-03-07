@@ -1,52 +1,46 @@
 package com.player.licenta.androidplayer;
 
 import android.app.Activity;
+import android.content.ComponentName;
+import android.content.ContentResolver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View.OnClickListener;
+import android.view.View;
+import android.widget.ListView;
+import android.widget.SeekBar;
+
+import com.player.licenta.androidplayer.MusicService.MusicBinder;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
-import com.player.licenta.androidplayer.MusicService.MusicBinder;
-
-import android.net.Uri;
-import android.content.ContentResolver;
-import android.database.Cursor;
-import android.graphics.Color;
-import android.widget.AdapterView;
-import android.widget.EditText;
-import android.widget.ListView;
-import android.widget.RelativeLayout;
-import android.widget.TextView;
-import android.widget.Toast;
-
-
-import android.os.IBinder;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.view.MenuItem;
-import android.view.View;
-
 public class MainActivity extends Activity
 {
 	private ArrayList<Song> songList;
 	private ListView songView;
+    private SeekBar volumeControl;
 
 	private MusicService musicSrv;
 	private Intent playIntent;
 	private boolean musicBound=false;
+
 
 	private MusicController controller;
 
 	private SongAdapter songAdt;
 
 	private boolean paused=false, playbackPaused=false;
+
+	private MusicService.OnSongChangedListener songChangedLister;
 
 	public final static String EXTRA_MESSAGE = "com.mycompany.myfirstapp.MESSAGE";
 	private final static String TAG = "MainActivity";
@@ -60,6 +54,7 @@ public class MainActivity extends Activity
 			MusicBinder binder = (MusicBinder)service;
 			musicSrv = binder.getService();
 			musicSrv.setList(songList);
+			musicSrv.setOnSongFinishedListener(songChangedLister);
 			musicBound = true;
 			setController();
 		}
@@ -77,19 +72,49 @@ public class MainActivity extends Activity
 		super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         songView = (ListView)findViewById(R.id.song_list);
+        volumeControl = (SeekBar)findViewById(R.id.volume);
         songList = new ArrayList<Song>();
 		getSongList();
 
         Collections.sort(songList, new Comparator<Song>()
-		{
-			public int compare(Song a, Song b)
-			{
-				return a.getTitle().compareTo(b.getTitle());
-			}
-		});
+        {
+            public int compare(Song a, Song b)
+            {
+                return a.getTitle().compareTo(b.getTitle());
+            }
+        });
 
         songAdt = new SongAdapter(this, songList);
         songView.setAdapter(songAdt);
+
+		songChangedLister = new MusicService.OnSongChangedListener()
+		{
+			@Override
+			public void onSongChanged(Song newSong)
+			{
+				songAdt.setHighlightRow(musicSrv.getSongIndex());
+			}
+		};
+
+        volumeControl.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener()
+        {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser)
+            {
+                System.out.println("Volume: " + progress);
+                musicSrv.setVolume(progress);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar)
+            {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar)
+            {
+            }
+        });
 
 		Log.d(TAG, "onCreate called");
 	}
@@ -114,6 +139,8 @@ public class MainActivity extends Activity
         if (controller != null)
         {
             controller.show();
+            songAdt.setHighlightRow(musicSrv.getSongIndex());
+			musicSrv.setOnSongFinishedListener(songChangedLister);
         }
     }
 
@@ -161,12 +188,25 @@ public class MainActivity extends Activity
 
 	public void songPicked(View view)
     {
-		int songIndex = Integer.parseInt(view.getTag().toString());
-		musicSrv.setSong(songIndex);
-		musicSrv.playSong();
-		controller.show();
-
-		showCoverArtActivity(view);
+		try
+		{
+			int songIndex = Integer.parseInt(view.getTag().toString());
+			if(songIndex >= 0)
+			{
+				if (songIndex != musicSrv.getSongIndex())
+				{
+					musicSrv.playSong(songIndex);
+					songAdt.setHighlightRow(musicSrv.getSongIndex());
+				}
+				controller.show();
+				showCoverArtActivity(view);
+			}
+		}
+		catch(NumberFormatException ex)
+		{
+            // safe to ignore for now
+            ex.printStackTrace();
+		}
 	}
 
 	private void showCoverArtActivity(View view)
@@ -239,6 +279,7 @@ public class MainActivity extends Activity
 					public void onClick(View v)
 					{
 						musicSrv.playNext();
+						songAdt.setHighlightRow(musicSrv.getSongIndex());
 					}
 				},
 				new View.OnClickListener()
@@ -247,15 +288,12 @@ public class MainActivity extends Activity
 					public void onClick(View v)
 					{
 						musicSrv.playPrev();
+						songAdt.setHighlightRow(musicSrv.getSongIndex());
 					}
 				}
 		);
-
 		controller.setMediaPlayer(musicSrv);
 		controller.setAnchorView(findViewById(R.id.song_list));
 		controller.setEnabled(true);
 	}
-
-
-
 }

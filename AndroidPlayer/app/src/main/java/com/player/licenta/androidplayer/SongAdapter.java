@@ -1,5 +1,6 @@
 package com.player.licenta.androidplayer;
 
+import android.content.res.ColorStateList;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
@@ -16,7 +17,7 @@ import android.widget.TextView;
 
 public class SongAdapter extends BaseAdapter 
 {
-	 
+	private final static int INVALID_ROW_INDEX = -1;
 	private ArrayList<Song> songs;
 	private LayoutInflater songInf;
 	
@@ -25,6 +26,7 @@ public class SongAdapter extends BaseAdapter
 	private TextView artistView;
 	private TextView songView;
 	private Song currSong;
+	private int highlightedRowIndex = INVALID_ROW_INDEX;
 	
 	
 	public SongAdapter(Context c, ArrayList<Song> theSongs)
@@ -59,7 +61,7 @@ public class SongAdapter extends BaseAdapter
 	{
 		//map to song layout
 		songLay = (LinearLayout)songInf.inflate
-	      (R.layout.song, parent, false);
+				(R.layout.song, parent, false);
 		
 		//get title and artist views
 		songView = (TextView)songLay.findViewById(R.id.song_title);
@@ -71,7 +73,15 @@ public class SongAdapter extends BaseAdapter
 		//get title and artist strings
 		songView.setText(currSong.getTitle());
 		artistView.setText(currSong.getArtist());
-		
+
+		if((highlightedRowIndex != INVALID_ROW_INDEX) &&
+			(position == highlightedRowIndex))
+		{
+			songView.setTextColor(Color.WHITE);
+			artistView.setTextColor(Color.WHITE);
+		}
+
+
 		/*
 		songLay.setOnClickListener(new OnClickListener() 
 		{
@@ -87,8 +97,10 @@ public class SongAdapter extends BaseAdapter
 		songLay.setTag(position);
 		return songLay;
 	}
-	
-	
 
- 
+	public void setHighlightRow(int index)
+	{
+		highlightedRowIndex = index;
+		notifyDataSetChanged();
+	}
 }
