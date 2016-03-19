@@ -366,4 +366,10 @@ MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl
 		float normalizedVolume = volume/100f;
 		player.setVolume(normalizedVolume, normalizedVolume);
 	}
+
+    public int getAudioId()
+    {
+        return player.getAudioSessionId();
+    }
+
 }

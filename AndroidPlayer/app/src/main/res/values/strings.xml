@@ -4,6 +4,9 @@
     <string name="app_name">MusicPlayer</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_song_picked">SongPicked</string>
+    <string name="title_activity_equalizer">EqualizerActivity</string>
+
+    <string name="hello_world">Hello world!</string>
 
 
 </resources>

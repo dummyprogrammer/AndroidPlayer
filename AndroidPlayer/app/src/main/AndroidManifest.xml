@@ -4,12 +4,16 @@
     android:versionCode="1"
     android:versionName="1.0" >
 
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-
     <uses-sdk
         android:minSdkVersion="21"
         android:targetSdkVersion="22" />
+
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
+    <android:uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <android:uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <android:uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:allowBackup="true"
@@ -32,6 +36,10 @@
         <activity
             android:name=".SongPickedActivity"
             android:label="@string/title_activity_song_picked" >
+        </activity>
+        <activity
+            android:name=".EqualizerActivity"
+            android:label="@string/title_activity_equalizer" >
         </activity>
     </application>
 

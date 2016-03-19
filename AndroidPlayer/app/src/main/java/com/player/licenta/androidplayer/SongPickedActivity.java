@@ -15,6 +15,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -238,14 +239,14 @@ public class SongPickedActivity extends Activity
 				}
 		);
         musicSrv.setOnSongFinishedListener(
-            new MusicService.OnSongChangedListener()
-            {
-                @Override
-                public void onSongChanged(Song newSong)
+                new MusicService.OnSongChangedListener()
                 {
-                    updateArtwork();
+                    @Override
+                    public void onSongChanged(Song newSong)
+                    {
+                        updateArtwork();
+                    }
                 }
-            }
         );
 		controller.setMediaPlayer(musicSrv);
 		controller.setAnchorView(findViewById(R.id.coverArt));
@@ -285,4 +286,12 @@ public class SongPickedActivity extends Activity
 			controller.show();
 		}
 	}
+
+    //Open Equalizer Activity
+    public void openEqualizerActivity(MenuItem item)
+    {
+        Intent intent = new Intent(this, EqualizerActivity.class);
+        startActivity(intent);
+    }
+
 }

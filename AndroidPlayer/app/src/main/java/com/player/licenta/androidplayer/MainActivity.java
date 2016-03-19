@@ -73,6 +73,7 @@ public class MainActivity extends Activity
         setContentView(R.layout.activity_main);
         songView = (ListView)findViewById(R.id.song_list);
         volumeControl = (SeekBar)findViewById(R.id.volume);
+		volumeControl.setProgress(100);
         songList = new ArrayList<Song>();
 		getSongList();
 
